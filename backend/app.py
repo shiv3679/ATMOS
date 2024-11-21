@@ -31,7 +31,7 @@ def evaluate():
     simulation_file = request.files.get('simulationFile')
     observation_file = request.files.get('observationFile')
     metrics = request.form.get('metrics')
-    variable_name = request.form.get('variable')  # If variable selection is implemented
+    variable_name = request.form.get('variable')  # Adjust as needed
 
     # Debug statements
     print(f"Received simulation_file: {simulation_file}")
@@ -74,17 +74,18 @@ def evaluate():
         # Align the datasets on their coordinates
         sim_data, obs_data = xr.align(sim_data, obs_data, join='inner')
 
-        # Extract spatial coordinates (adjust coordinate names as needed)
-        lat = obs_data.coords['latitude'].values if 'latitude' in obs_data.coords else \
-              obs_data.coords['lat'].values if 'lat' in obs_data.coords else None
-        lon = obs_data.coords['longitude'].values if 'longitude' in obs_data.coords else \
-              obs_data.coords['lon'].values if 'lon' in obs_data.coords else None
+        # Reduce dimensions for plotting (mean over time)
+        obs_data_mean = obs_data.mean(dim='time').squeeze()
+
+        # Extract spatial coordinates
+        lat = obs_data_mean.coords['lat'].values if 'lat' in obs_data_mean.coords else None
+        lon = obs_data_mean.coords['lon'].values if 'lon' in obs_data_mean.coords else None
 
         if lat is None or lon is None:
             return jsonify({'error': 'Latitude and longitude coordinates not found in the data.'}), 400
 
         # Convert data to lists for JSON serialization
-        obs_values = obs_data.values.tolist()
+        obs_values = obs_data_mean.values.tolist()
 
         # Calculate metrics
         results = {}

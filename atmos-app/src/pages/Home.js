@@ -88,7 +88,7 @@ function Home() {
       </div>
 
       {/* Visualization */}
-      {evaluationResults && (
+      {evaluationResults && observationData && (
         <Visualization
           results={evaluationResults}
           observationData={observationData}
