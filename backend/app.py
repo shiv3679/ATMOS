@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 import numpy as np
@@ -35,7 +35,7 @@ def evaluate():
         return jsonify({'error': 'Missing files or parameters'}), 400
 
     metrics = json.loads(metrics)
-    calc_mode = calc_mode.lower()  # Convert to lowercase for easier handling
+    calc_mode = calc_mode.lower()
     metric_functions = {
         'Mean Absolute Error (MAE)': calculate_mae,
         'Root Mean Square Error (RMSE)': calculate_rmse,
@@ -58,73 +58,71 @@ def evaluate():
 
         sim_data, obs_data = xr.align(sim_data, obs_data, join='inner')
 
-        # Calculate metrics
         results = {}
-        for metric in metrics:
-            func = metric_functions.get(metric)
-            if not func:
-                results[metric] = 'Metric not implemented'
-                continue
-
-            if calc_mode == 'spatial':
-                result = func(sim_data, obs_data).mean(dim='time').values
-            elif calc_mode == 'temporal':
-                result = func(sim_data, obs_data).mean(dim=['lat', 'lon']).values
-            else:  # Overall
-                result = func(sim_data, obs_data).mean().values
-
-            results[metric] = result.tolist() if isinstance(result, np.ndarray) else float(result)
-
-        # Generate plot based on calculation mode
         plot_filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'metric_plot.png')
+
         if calc_mode == 'spatial':
-            # Spatial plot at t=0
-            spatial_data = obs_data.isel(time=0).squeeze()
-            lat = spatial_data.coords['lat'].values
-            lon = spatial_data.coords['lon'].values
-
             plt.figure(figsize=(12, 8))
-            ax = plt.axes(projection=ccrs.PlateCarree())
-            mesh = ax.pcolormesh(lon, lat, spatial_data, cmap='viridis', transform=ccrs.PlateCarree())
-            ax.add_feature(cfeature.LAND, edgecolor='black')
-            ax.add_feature(cfeature.COASTLINE)
-            plt.colorbar(mesh, ax=ax, orientation='vertical', label='Value')
-            plt.title(f'Spatial Plot for {variable_name} at t=0')
+            for metric in metrics:
+                func = metric_functions.get(metric)
+                if func:
+                    # Flatten time dimension for spatial calculation
+                    metric_data = func(sim_data, obs_data).mean(dim='time')
+                    lat = metric_data.coords['lat'].values
+                    lon = metric_data.coords['lon'].values
+                    ax = plt.axes(projection=ccrs.PlateCarree())
+                    mesh = ax.pcolormesh(
+                        lon,
+                        lat,
+                        metric_data,
+                        cmap='viridis',
+                        transform=ccrs.PlateCarree(),
+                    )
+                    ax.add_feature(cfeature.LAND, edgecolor='black')
+                    ax.add_feature(cfeature.COASTLINE)
+                    plt.colorbar(mesh, ax=ax, orientation='vertical', label=metric)
+                    plt.title(f'Spatial Plot for {metric}')
+                    plt.savefig(
+                        os.path.join(app.config['UPLOAD_FOLDER'], f'spatial_{metric}.png'),
+                        bbox_inches='tight',
+                    )
+                    plt.close()
+
         elif calc_mode == 'temporal':
-            # Temporal plot (mean over spatial dimensions)
-            temporal_data = obs_data.mean(dim=['lat', 'lon']).values
-            time = obs_data.coords['time'].values
-
             plt.figure(figsize=(12, 8))
-            plt.plot(time, temporal_data, label=f'{variable_name}')
+            for metric in metrics:
+                func = metric_functions.get(metric)
+                if func:
+                    # Mean over spatial dimensions
+                    temporal_data = func(sim_data, obs_data).mean(dim=['lat', 'lon']).values
+                    time = obs_ds.coords['time'].values
+                    plt.plot(time, temporal_data, label=metric)
             plt.xlabel('Time')
-            plt.ylabel('Value')
-            plt.title(f'Temporal Plot for {variable_name}')
-            plt.grid()
+            plt.ylabel('Metric Value')
+            plt.title(f'Temporal Plot')
             plt.legend()
+            plt.grid()
+            plt.savefig(plot_filepath, bbox_inches='tight')
+            plt.close()
+
         else:  # Overall
-            # Placeholder for overall summary or heatmap
-            overall_data = obs_data.mean(dim='time').squeeze()
-            lat = overall_data.coords['lat'].values
-            lon = overall_data.coords['lon'].values
-
-            plt.figure(figsize=(12, 8))
-            ax = plt.axes(projection=ccrs.PlateCarree())
-            mesh = ax.pcolormesh(lon, lat, overall_data, cmap='viridis', transform=ccrs.PlateCarree())
-            ax.add_feature(cfeature.LAND, edgecolor='black')
-            ax.add_feature(cfeature.COASTLINE)
-            plt.colorbar(mesh, ax=ax, orientation='vertical', label='Value')
-            plt.title(f'Overall Spatial Plot for {variable_name}')
-
-        plt.savefig(plot_filepath, bbox_inches='tight')
-        plt.close()
+            overall_results = {}
+            for metric in metrics:
+                func = metric_functions.get(metric)
+                if func:
+                    result = func(sim_data, obs_data).mean().values
+                    overall_results[metric] = result.tolist() if isinstance(result, np.ndarray) else float(result)
+            results.update(overall_results)
 
         sim_ds.close()
         obs_ds.close()
 
         return jsonify({
             'results': results,
-            'plotUrl': '/uploads/metric_plot.png'
+            'plotUrls': {
+                'spatial': [f'/uploads/spatial_{metric}.png' for metric in metrics] if calc_mode == 'spatial' else None,
+                'temporal': '/uploads/metric_plot.png' if calc_mode == 'temporal' else None,
+            },
         }), 200
 
     except Exception as e:

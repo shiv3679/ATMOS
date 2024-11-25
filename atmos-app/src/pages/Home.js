@@ -9,7 +9,7 @@ function Home() {
   const [selectedMetrics, setSelectedMetrics] = useState([]);
   const [calcMode, setCalcMode] = useState('overall'); // Default mode
   const [evaluationResults, setEvaluationResults] = useState(null);
-  const [plotImage, setPlotImage] = useState(null);
+  const [plotImages, setPlotImages] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleEvaluate = () => {
@@ -25,7 +25,7 @@ function Home() {
       .post('http://localhost:5000/evaluate', formData)
       .then((response) => {
         setEvaluationResults(response.data.results);
-        setPlotImage(`http://localhost:5000${response.data.plotUrl}`);
+        setPlotImages(response.data.plotUrls);
       })
       .catch(() => alert('Evaluation failed.'))
       .finally(() => setIsLoading(false));
@@ -76,10 +76,28 @@ function Home() {
         </div>
       )}
 
-      {plotImage && (
-        <div className="mt-8 text-center">
-          <h2 className="text-2xl font-semibold mb-4">Generated Plot</h2>
-          <img src={plotImage} alt="Generated Plot" className="inline-block rounded-lg shadow-md" />
+      {plotImages && (
+        <div className="mt-8">
+          <h2 className="text-2xl font-semibold mb-4">Generated Plots</h2>
+          {calcMode === 'spatial' && plotImages.spatial && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {plotImages.spatial.map((plotUrl, index) => (
+                <img
+                  key={index}
+                  src={`http://localhost:5000${plotUrl}`}
+                  alt={`Spatial Plot ${index + 1}`}
+                  className="rounded-lg shadow-md"
+                />
+              ))}
+            </div>
+          )}
+          {calcMode === 'temporal' && plotImages.temporal && (
+            <img
+              src={`http://localhost:5000${plotImages.temporal}`}
+              alt="Temporal Plot"
+              className="rounded-lg shadow-md"
+            />
+          )}
         </div>
       )}
     </div>
