@@ -8,10 +8,15 @@ function Navbar() {
     <nav className="bg-gray-800 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0">
+          {/* Logo and Brand Name */}
+          <div className="flex items-center">
+            <img
+              src="/A.T.M.O.S.gif"
+              alt="A.T.M.O.S Logo"
+              className="h-10 w-10 mr-3 rounded-full"
+            />
             <Link to="/" className="text-white font-bold text-2xl">
-              NWP Tool
+              A.T.M.O.S
             </Link>
           </div>
 

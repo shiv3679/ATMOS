@@ -53,7 +53,7 @@ function Home() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-4xl font-bold text-center mb-8">NWP Model Evaluation Tool</h1>
+      <h1 className="text-4xl font-bold text-center mb-8"> NWP Model Evaluation Tool</h1>
       <p className="mb-8 text-gray-700 text-center">
         Upload simulation and observation NetCDF files, select evaluation metrics, and visualize the results in an interactive manner.
       </p>
