@@ -8,9 +8,28 @@ function Home() {
   const [observationFile, setObservationFile] = useState(null);
   const [selectedMetrics, setSelectedMetrics] = useState([]);
   const [calcMode, setCalcMode] = useState('overall'); // Default mode
+  const [variables, setVariables] = useState([]); // Variable options
+  const [selectedVariable, setSelectedVariable] = useState(''); // Selected variable
   const [evaluationResults, setEvaluationResults] = useState(null);
   const [plotImages, setPlotImages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleFileUpload = (file, setFile, isSimulation) => {
+    setFile(file);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Fetch variables only for the observation file
+    if (!isSimulation) {
+      axios
+        .post('http://localhost:5000/get-variables', formData)
+        .then((response) => {
+          setVariables(response.data.variables);
+          setSelectedVariable(response.data.variables[0]); // Default to the first variable
+        })
+        .catch(() => alert('Failed to fetch variables.'));
+    }
+  };
 
   const handleEvaluate = () => {
     setIsLoading(true);
@@ -19,6 +38,7 @@ function Home() {
     formData.append('simulationFile', simulationFile);
     formData.append('observationFile', observationFile);
     formData.append('metrics', JSON.stringify(selectedMetrics));
+    formData.append('variable', selectedVariable); // Include selected variable
     formData.append('calcMode', calcMode);
 
     axios
@@ -38,8 +58,34 @@ function Home() {
         Upload simulation and observation NetCDF files, select evaluation metrics, and visualize the results in an interactive manner.
       </p>
 
-      <FileUpload label="Upload Simulation File" file={simulationFile} setFile={setSimulationFile} />
-      <FileUpload label="Upload Observation File" file={observationFile} setFile={setObservationFile} />
+      <FileUpload
+        label="Upload Simulation File"
+        file={simulationFile}
+        setFile={(file) => handleFileUpload(file, setSimulationFile, true)}
+      />
+      <FileUpload
+        label="Upload Observation File"
+        file={observationFile}
+        setFile={(file) => handleFileUpload(file, setObservationFile, false)}
+      />
+
+      {variables.length > 0 && (
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold mb-2">Select Variable</h2>
+          <select
+            value={selectedVariable}
+            onChange={(e) => setSelectedVariable(e.target.value)}
+            className="border p-2 rounded-md"
+          >
+            {variables.map((variable) => (
+              <option key={variable} value={variable}>
+                {variable}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <ProcessingOptions selectedMetrics={selectedMetrics} setSelectedMetrics={setSelectedMetrics} />
 
       <div className="mb-4">
