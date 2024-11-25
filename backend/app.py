@@ -59,17 +59,17 @@ def evaluate():
         sim_data, obs_data = xr.align(sim_data, obs_data, join='inner')
 
         results = {}
-        plot_filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'metric_plot.png')
+        plot_urls = []
 
         if calc_mode == 'spatial':
-            plt.figure(figsize=(12, 8))
             for metric in metrics:
                 func = metric_functions.get(metric)
                 if func:
-                    # Flatten time dimension for spatial calculation
                     metric_data = func(sim_data, obs_data).mean(dim='time')
                     lat = metric_data.coords['lat'].values
                     lon = metric_data.coords['lon'].values
+                    plot_filepath = os.path.join(app.config['UPLOAD_FOLDER'], f'spatial_{metric}.png')
+                    plt.figure(figsize=(12, 8))
                     ax = plt.axes(projection=ccrs.PlateCarree())
                     mesh = ax.pcolormesh(
                         lon,
@@ -82,47 +82,43 @@ def evaluate():
                     ax.add_feature(cfeature.COASTLINE)
                     plt.colorbar(mesh, ax=ax, orientation='vertical', label=metric)
                     plt.title(f'Spatial Plot for {metric}')
-                    plt.savefig(
-                        os.path.join(app.config['UPLOAD_FOLDER'], f'spatial_{metric}.png'),
-                        bbox_inches='tight',
-                    )
+                    plt.savefig(plot_filepath, bbox_inches='tight')
                     plt.close()
+                    plot_urls.append(f'/uploads/spatial_{metric}.png')
+                    results[metric] = metric_data.values.tolist()
 
         elif calc_mode == 'temporal':
             plt.figure(figsize=(12, 8))
             for metric in metrics:
                 func = metric_functions.get(metric)
                 if func:
-                    # Mean over spatial dimensions
                     temporal_data = func(sim_data, obs_data).mean(dim=['lat', 'lon']).values
                     time = obs_ds.coords['time'].values
                     plt.plot(time, temporal_data, label=metric)
+                    results[metric] = temporal_data.tolist()
             plt.xlabel('Time')
             plt.ylabel('Metric Value')
-            plt.title(f'Temporal Plot')
+            plt.title('Temporal Plot')
             plt.legend()
+            plot_filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'temporal_plot.png')
             plt.grid()
             plt.savefig(plot_filepath, bbox_inches='tight')
             plt.close()
+            plot_urls.append('/uploads/temporal_plot.png')
 
         else:  # Overall
-            overall_results = {}
             for metric in metrics:
                 func = metric_functions.get(metric)
                 if func:
                     result = func(sim_data, obs_data).mean().values
-                    overall_results[metric] = result.tolist() if isinstance(result, np.ndarray) else float(result)
-            results.update(overall_results)
+                    results[metric] = result.tolist() if isinstance(result, np.ndarray) else float(result)
 
         sim_ds.close()
         obs_ds.close()
 
         return jsonify({
             'results': results,
-            'plotUrls': {
-                'spatial': [f'/uploads/spatial_{metric}.png' for metric in metrics] if calc_mode == 'spatial' else None,
-                'temporal': '/uploads/metric_plot.png' if calc_mode == 'temporal' else None,
-            },
+            'plotUrls': plot_urls,
         }), 200
 
     except Exception as e:
