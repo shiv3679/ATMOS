@@ -53,11 +53,12 @@ function Home() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-4xl font-bold text-center mb-8"> NWP Model Evaluation Tool</h1>
+      <h1 className="text-4xl font-bold text-center mb-8">NWP Model Evaluation Tool</h1>
       <p className="mb-8 text-gray-700 text-center">
         Upload simulation and observation NetCDF files, select evaluation metrics, and visualize the results in an interactive manner.
       </p>
 
+      {/* File Upload Section */}
       <FileUpload
         label="Upload Simulation File"
         file={simulationFile}
@@ -69,13 +70,14 @@ function Home() {
         setFile={(file) => handleFileUpload(file, setObservationFile, false)}
       />
 
+      {/* Variable Selection */}
       {variables.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-6">
           <h2 className="text-xl font-semibold mb-2">Select Variable</h2>
           <select
             value={selectedVariable}
             onChange={(e) => setSelectedVariable(e.target.value)}
-            className="border p-2 rounded-md"
+            className="block w-full p-3 text-lg border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           >
             {variables.map((variable) => (
               <option key={variable} value={variable}>
@@ -86,14 +88,19 @@ function Home() {
         </div>
       )}
 
-      <ProcessingOptions selectedMetrics={selectedMetrics} setSelectedMetrics={setSelectedMetrics} />
+      {/* Metric Selection */}
+      <ProcessingOptions
+        selectedMetrics={selectedMetrics}
+        setSelectedMetrics={setSelectedMetrics}
+      />
 
-      <div className="mb-4">
+      {/* Calculation Mode */}
+      <div className="mb-6">
         <h2 className="text-xl font-semibold mb-2">Calculation Mode</h2>
         <select
           value={calcMode}
           onChange={(e) => setCalcMode(e.target.value)}
-          className="border p-2 rounded-md"
+          className="block w-full p-3 text-lg border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="overall">Overall</option>
           <option value="spatial">Spatial</option>
@@ -101,18 +108,22 @@ function Home() {
         </select>
       </div>
 
-      <button
-        onClick={handleEvaluate}
-        disabled={!simulationFile || !observationFile || selectedMetrics.length === 0 || isLoading}
-        className={`px-6 py-2 rounded-lg font-semibold shadow-md ${
-          simulationFile && observationFile && selectedMetrics.length > 0 && !isLoading
-            ? 'bg-blue-600 hover:bg-blue-700 text-white'
-            : 'bg-gray-400 text-gray-700 cursor-not-allowed'
-        }`}
-      >
-        {isLoading ? 'Evaluating...' : 'Evaluate'}
-      </button>
+      {/* Evaluate Button */}
+      <div className="flex justify-center mt-4">
+        <button
+          onClick={handleEvaluate}
+          disabled={!simulationFile || !observationFile || selectedMetrics.length === 0 || isLoading}
+          className={`px-8 py-3 rounded-lg font-semibold shadow-md ${
+            simulationFile && observationFile && selectedMetrics.length > 0 && !isLoading
+              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              : 'bg-gray-400 text-gray-700 cursor-not-allowed'
+          }`}
+        >
+          {isLoading ? 'Evaluating...' : 'Evaluate'}
+        </button>
+      </div>
 
+      {/* Evaluation Results */}
       {evaluationResults && (
         <div className="mt-8">
           <h2 className="text-2xl font-semibold mb-4">Evaluation Results</h2>
@@ -122,6 +133,7 @@ function Home() {
         </div>
       )}
 
+      {/* Generated Plots */}
       {plotImages.length > 0 && (
         <div className="mt-8">
           <h2 className="text-2xl font-semibold mb-4">Generated Plots</h2>
