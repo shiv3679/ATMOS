@@ -131,5 +131,5 @@ Contributions are welcome! Feel free to open issues or submit pull requests to e
 
 ## Contact
 - **Author:** Shiv Shankar Singh
-- **Email:** shivshankarsingh.py@g,ail.com
+- **Email:** shivshankarsingh.py@gmail.com
 
